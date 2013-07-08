@@ -1,0 +1,163 @@
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <l:layout norefresh="true" title="">
+        <l:main-panel>
+            <h1>Durchführen von Releases.</h1>
+            <p>
+                Zu Beginn eines Major Releases befindet sich der Trunk des projektes beispielsweise in der Version
+                4.13-SNAPSHOT. Zu einem vorgegeben Datum geht das Projekt in die Code-Freeze Phase über. Dazu wird ein
+                Branch im SCM angelegt mit der 2-stelligen versionsnummer des Majopr-Releases. War Trunk bisher
+                Version 4.13-SNAPSHOT so wird der Branch zu 4.13 und die Version im Trunk auf 4.14-SNAPSHOT oder die
+                version des nächsten geplanten Releases geändert. Dieser Schritt muss manuell durchgeführt werden und
+                danach muss im Jenkins ein Job für den jeweiligen Branch angelegt werden und mindestens ein mal das
+                Maven "prepare" Goal aufgerufen werden. Sonst kann Jenkins nicht wissen welche Module im Projekt
+                enthalten sind und kann diese im Minor-Release Teil dieses Dialogs nicht anzeigen.
+           </p>
+            <p>
+                Wird das Major Release durchgeführt, so werden ALLE Module des Projektes released (Schritt 2).
+                Die hierzu verwendet Version ist gleich dem Branch-Namen mit angehängter ".0". In diesem Beispiel also
+                4.13.0. Die Version der module im Branch bleiben allerdings unverändert (4.13-SNAPSHOT).
+            </p>
+            <p>
+                Werden nach dem Release in Modulen Fehler entdeckt und behoben, so können diese mit Minor-Releases
+                einzeln aktualisiert werden. Im Grunde gleicht ein Minor Release einem Major Release, jedoch können hier
+                nur ausgewählte Module released werden und die Versionen können unabhängig voneinander vergeben werden.
+                Im Idealfall prüft das release plugin im Nexus die höchste Version eines Moduls und setzt die nächst
+                höhere Version als default in den Versionsfeldern.
+            </p>
+            <p>
+                Für die Funktion dieses Plugins sind einige Randbedingungen zu erfüllen:
+                <ul>
+                    <li>Es wird ein Nexus Server als Maven Repository verwendet.</li>
+                    <li>Bei einem Minor release sind immer die ersten zwei Segmente der Version gleich der SNAPSHOT
+                        Version.</li>
+                    <li>Es wird davon ausgegangen, dass alle elemente eines Projekts die gleiche Group-Id besitzen.</li>
+                    <li>Wählt man ein Modul zum Release aus, so müssen auch all dessen Parent Projekte released werden.
+                        Wurden diese nicht explizit ausgewählt, so wählt das System diese automatisch aus und verwendet
+                        automatich die vorgeschlagene Version dafür.</li>
+                </ul>
+            </p>
+
+            <j:choose>
+                <j:when test="${it.initialized == false}">
+                    <f:form method="post" action="performInitialize" name="initializeSettings">
+                        <f:section title="Project not initializes">
+                        </f:section>
+                        <tr>
+                            <td colspan="4" align="right">
+                                <p>
+                                    Das Projekt wurde bisher nicht gebaut, daher kann Jenkins noch keine Aussage über
+                                    die Details des Projektes machen. Es ist daher nötig zuerst einen belieibegen
+                                    normalen Build durchzuführen. Ein Klick auf "Schedule Maven Verify Build" startet
+                                    den kleinst-möglichen Maven build. Danach kann das Release Plugin vollständig
+                                    genutzt werden.
+                                </p>
+                                <f:submit value="${%Schedule Maven Verify Build}"/>
+                            </td>
+                        </tr>
+                    </f:form>
+                </j:when>
+                <j:when test="${it.dirty}">
+                    <f:form method="post" action="performCleanup" name="cleanupSettings">
+                        <f:section title="Perform Cleanup">
+                        </f:section>
+                        <tr>
+                            <td colspan="4" align="right">
+                                <p>
+                                    Ein vorheriger Release-Build ist fehlgeschlagen. Daher ist der Workspace in einem
+                                    ungültigen Zustand. Es ist daher nicht möglich sofort ein neues Release zu starten
+                                    Zuerst muss erstmal der Build aufgeräumt werden.
+                                </p>
+                                <f:submit value="${%Schedule Maven Release Cleanup}"/>
+                            </td>
+                        </tr>
+                    </f:form>
+                </j:when>
+                <j:otherwise>
+                    <f:form method="post" action="performMajorRelease" name="releaseSettings">
+                        <f:section title="Perform Major Release">
+                        </f:section>
+                        <tr>
+                            <td colspan="4" align="right">
+                                <p>
+                                    Bei einem Major release werden alle Module des Projekts in der gleichen version
+                                    released. Aktuell würden daher alle Module in der Version
+                                    <b>${it.versionHandler.getNextReleaseVersion(it.project.rootModule.moduleName)}</b>
+                                    released werden.
+                                </p>
+                                <f:submit value="${%Schedule Maven Major Release Build}"/>
+                            </td>
+                        </tr>
+                    </f:form>
+                    <f:form method="post" action="performMinorRelease" name="minorReleaseSettings">
+                        <f:section title="Perform Minor Release">
+                            <tr>
+                                <td colspan="4">
+                                    <p>
+                                        In dieser Liste werden alle Artefakte des aktuellen Projekts aufgelistet. In der
+                                        letzten Spalte wird automatisch eine neue Version vorgeschlagen. Diese bestimmt sich
+                                        aus der neusten Version des jeweiligen Artefaktes, welche im Nexus enthalten ist. Das
+                                        letzte Segment wird automatisch um eins erhöht. Ist z.B. die höchste Version im Nexus
+                                        die Version 4.13.4 so wird automatisch 4.13.5 als neue Version vorgeschlagen.
+                                    </p>
+                                    <p>
+                                        Um ein Artefakt in einer neuen Version zu releasen muss die checkbox der jeweiligen
+                                        Zeile selektiert sein. Beim Klick auf den Relese Button unterhalb der Liste, werden nur
+                                        die Artefakte released, die ausgewählt wurden.
+                                    </p>
+                                    <p>
+                                        Wurde ein Modul bisher nicht released, so ist die checkbox zum releasen eines Moduls
+                                        automatisch selektiert. Hier ist es nämlich sehr wahrscheinlich, dass ein Build ohne
+                                        dieses Artefakt in der Regel nicht möglich sein wird.
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" align="right">
+                                    <f:submit value="${%Schedule Maven Minor Release Build}"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="4">
+                                    <f:checkbox name="autoSelectMissingModules" title="Automatically select missing modules"/>
+                                </td>
+                            </tr>
+                            <table cellspacing="20" name="artifacts">
+                                <tr>
+                                    <th>Index</th>
+                                    <th>Group Id</th>
+                                    <th>Artifact Id</th>
+                                    <th>Name</th>
+                                    <th>Current Version</th>
+                                    <th>Release Version</th>
+                                    <th>Release</th>
+                                </tr>
+                                <j:forEach var="num" begin="0" end="${it.modules.size() - 1}">
+                                    <j:set var="module" value="${it.modules.get(num)}"/>
+                                    <tr name="${module.moduleName.artifactId}">
+                                        <td align="right">${num + 1}</td>
+                                        <td>${module.moduleName.groupId}</td>
+                                        <td>${module.moduleName.artifactId}</td>
+                                        <td>${module.displayName}</td>
+                                        <td>${it.versionHandler.getCurrentReleaseVersion(module.moduleName)}</td>
+                                        <td>
+                                            <input type="hidden" name="groupId" value="${module.moduleName.groupId}"/>
+                                            <input type="hidden" name="artifactId" value="${module.moduleName.artifactId}"/>
+                                            <f:textbox
+                                                    value="${it.versionHandler.getNextReleaseVersion(module.moduleName)}"
+                                                    name="version"/>
+                                        </td>
+                                        <td align="center">
+                                            <f:checkbox
+                                                    checked="${it.versionHandler.isNotReleased(module.moduleName)}"
+                                                    name="release"/>
+                                        </td>
+                                    </tr>
+                                </j:forEach>
+                            </table>
+                        </f:section>
+                    </f:form>
+                </j:otherwise>
+            </j:choose>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>
