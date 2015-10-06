@@ -8,11 +8,12 @@ package de.cware.plugins.jenkins.releases.versions;
  *   http://www.eclipse.org/legal/epl-v10.html
  *******************************************************************************/
 
-import org.apache.maven.repository.internal.MavenRepositorySystemSession;
-import org.sonatype.aether.RepositorySystem;
-import org.sonatype.aether.RepositorySystemSession;
-import org.sonatype.aether.repository.LocalRepository;
-import org.sonatype.aether.repository.RemoteRepository;
+import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
+import org.eclipse.aether.DefaultRepositorySystemSession;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.repository.LocalRepository;
+import org.eclipse.aether.repository.RemoteRepository;
 
 import java.io.File;
 
@@ -26,12 +27,12 @@ public class Booter {
     }
 
     public static RepositorySystemSession newRepositorySystemSession(RepositorySystem system) {
-        MavenRepositorySystemSession session = new MavenRepositorySystemSession();
+        DefaultRepositorySystemSession session = MavenRepositorySystemUtils.newSession();
 
         LocalRepository localRepo = new LocalRepository("target/local-repo");
         // Clear the local repo.
         deleteDirectory(localRepo.getBasedir());
-        session.setLocalRepositoryManager(system.newLocalRepositoryManager(localRepo));
+        session.setLocalRepositoryManager(system.newLocalRepositoryManager(session, localRepo));
 
         session.setTransferListener(new ConsoleTransferListener());
         session.setRepositoryListener(new ConsoleRepositoryListener());
@@ -41,9 +42,9 @@ public class Booter {
 
     public static RemoteRepository newCentralRepository(String repoUrl) {
         if (repoUrl != null) {
-            return new RemoteRepository("central", "default", repoUrl);
+            return new RemoteRepository.Builder("central", "default", repoUrl).build();
         } else {
-            return new RemoteRepository("central", "default", "http://repo1.maven.org/maven2/");
+            return new RemoteRepository.Builder("central", "default", "http://repo1.maven.org/maven2/").build();
         }
     }
 
@@ -51,12 +52,11 @@ public class Booter {
         if( path.exists() ) {
             File[] files = path.listFiles();
             if(files != null) {
-                for(int i=0; i<files.length; i++) {
-                    if(files[i].isDirectory()) {
-                        deleteDirectory(files[i]);
-                    }
-                    else {
-                        files[i].delete();
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        deleteDirectory(file);
+                    } else {
+                        file.delete();
                     }
                 }
             }

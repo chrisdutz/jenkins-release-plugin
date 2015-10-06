@@ -8,10 +8,11 @@ package de.cware.plugins.jenkins.releases.versions;
  *   http://www.eclipse.org/legal/epl-v10.html
  *******************************************************************************/
 
+import org.eclipse.aether.AbstractRepositoryListener;
+import org.eclipse.aether.RepositoryEvent;
+
 import java.io.PrintStream;
 
-import org.sonatype.aether.AbstractRepositoryListener;
-import org.sonatype.aether.RepositoryEvent;
 
 /**
  * A simplistic repository listener that logs events to the console.

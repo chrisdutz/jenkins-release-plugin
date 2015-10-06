@@ -8,12 +8,13 @@ package de.cware.plugins.jenkins.releases.versions;
  *   http://www.eclipse.org/legal/epl-v10.html
  *******************************************************************************/
 
-import org.apache.maven.repository.internal.DefaultServiceLocator;
-import org.sonatype.aether.RepositorySystem;
-import org.sonatype.aether.connector.file.FileRepositoryConnectorFactory;
-import org.sonatype.aether.connector.wagon.WagonProvider;
-import org.sonatype.aether.connector.wagon.WagonRepositoryConnectorFactory;
-import org.sonatype.aether.spi.connector.RepositoryConnectorFactory;
+
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.connector.file.FileRepositoryConnectorFactory;
+import org.eclipse.aether.connector.wagon.WagonRepositoryConnectorFactory;
+import org.eclipse.aether.impl.DefaultServiceLocator;
+import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
+import org.eclipse.aether.transport.wagon.WagonProvider;
 
 /**
  * A factory for repository system instances that employs Aether's built-in service locator infrastructure to wire up

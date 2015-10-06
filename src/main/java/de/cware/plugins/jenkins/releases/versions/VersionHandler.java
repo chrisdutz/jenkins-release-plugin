@@ -4,16 +4,16 @@ import de.cware.plugins.jenkins.releases.ReleaseBuildWrapper;
 import hudson.maven.MavenModule;
 import hudson.maven.MavenModuleSet;
 import hudson.maven.ModuleName;
-
-import org.sonatype.aether.RepositorySystem;
-import org.sonatype.aether.RepositorySystemSession;
-import org.sonatype.aether.artifact.Artifact;
-import org.sonatype.aether.repository.Authentication;
-import org.sonatype.aether.repository.RemoteRepository;
-import org.sonatype.aether.resolution.VersionRangeRequest;
-import org.sonatype.aether.resolution.VersionRangeResult;
-import org.sonatype.aether.util.artifact.DefaultArtifact;
-import org.sonatype.aether.version.Version;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.repository.Authentication;
+import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.VersionRangeRequest;
+import org.eclipse.aether.resolution.VersionRangeResult;
+import org.eclipse.aether.util.repository.AuthenticationBuilder;
+import org.eclipse.aether.version.Version;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,15 +51,17 @@ public class VersionHandler {
             try {
                 final ReleaseBuildWrapper releaseBuildWrapper =
                         project.getBuildWrappersList().get(ReleaseBuildWrapper.class);
-                final RemoteRepository repo = Booter.newCentralRepository(releaseBuildWrapper.getMavenRepoUrl());
+                RemoteRepository repo = Booter.newCentralRepository(releaseBuildWrapper.getMavenRepoUrl());
                 final RepositorySystem system = Booter.newRepositorySystem();
                 final RepositorySystemSession session = Booter.newRepositorySystemSession(system);
 
                 // If authentication credentials are provided, use them to authenticate.
                 if ((releaseBuildWrapper.getMavenRepoUser() != null) &&
                         (releaseBuildWrapper.getMavenRepoPassword() != null)) {
-                    repo.setAuthentication(new Authentication(
-                            releaseBuildWrapper.getMavenRepoUser(), releaseBuildWrapper.getMavenRepoPassword()));
+                    Authentication authentication = new AuthenticationBuilder()
+                            .addUsername(releaseBuildWrapper.getMavenRepoUser())
+                            .addPassword(releaseBuildWrapper.getMavenRepoPassword()).build();
+                    repo = new RemoteRepository.Builder(repo).setAuthentication(authentication).build();
                 }
 
                 populateLatestVersionForMajorReleaseMap(majorVersion, project.getRootModule(), repo, system, session);

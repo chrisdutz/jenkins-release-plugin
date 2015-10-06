@@ -10,7 +10,7 @@ package de.cware.plugins.jenkins.releases.versions;
 
 import org.apache.maven.wagon.Wagon;
 import org.apache.maven.wagon.providers.http.HttpWagon;
-import org.sonatype.aether.connector.wagon.WagonProvider;
+import org.eclipse.aether.transport.wagon.WagonProvider;
 
 /**
  * A simplistic provider for wagon instances when no Plexus-compatible IoC container is used.
