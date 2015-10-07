@@ -9,6 +9,7 @@ package de.cware.plugins.jenkins.releases.versions;
  *******************************************************************************/
 
 
+import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.connector.file.FileRepositoryConnectorFactory;
 import org.eclipse.aether.connector.wagon.WagonRepositoryConnectorFactory;
@@ -27,7 +28,7 @@ public class ManualRepositorySystemFactory {
          * Aether's components implement org.sonatype.aether.spi.locator.Service to ease manual wiring and using the
          * prepopulated DefaultServiceLocator, we only need to register the repository connector factories.
          */
-        DefaultServiceLocator locator = new DefaultServiceLocator();
+        DefaultServiceLocator locator = MavenRepositorySystemUtils.newServiceLocator();
         locator.addService(RepositoryConnectorFactory.class, FileRepositoryConnectorFactory.class);
         locator.addService(RepositoryConnectorFactory.class, WagonRepositoryConnectorFactory.class);
         locator.setServices(WagonProvider.class, new ManualWagonProvider());
